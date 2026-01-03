@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IFRAME MARAD - KURVA EGYSZERŰ</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #111;
+            color: white;
+            font-family: Arial;
+        }
+        
+        .iframe-box {
+            width: 100%;
+            height: 600px;
+            border: 3px solid red;
+            margin: 20px 0;
+            background: black;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .controls {
+            background: #222;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+        }
+        
+        button {
+            background: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .url-list {
+            background: #333;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔥 IFRAME MARAD - CSAK IFRAME</h1>
+    
+    <div class="controls">
+        <h2>📁 CSV vagy kézzel:</h2>
+        <input type="file" id="csvFile" accept=".csv">
+        <button onclick="loadCSV()">CSV Betöltés</button>
+        <br><br>
+        
+        <input type="text" id="manualUrl" placeholder="example.com" style="width: 300px;">
+        <button onclick="addUrl()">➕ Oldal Hozzáadása</button>
+    </div>
+    
+    <div class="url-list" id="urlList">
+        <h3>📋 Weboldalak listája:</h3>
+        <div id="urlsContainer">
+            <!-- Ide jönnek az URL-ek -->
+        </div>
+    </div>
+    
+    <h2>🎯 Aktív IFRAME (ITT MARAD MINDEN):</h2>
+    <div class="iframe-box">
+        <iframe id="mainFrame" sandbox="allow-same-origin allow-scripts"></iframe>
+    </div>
+
+    <script>
+        // KURVA EGYSZERŰ - CSAK IFRAME
+        let currentUrls = [];
+        
+        function loadCSV() {
+            const file = document.getElementById('csvFile').files[0];
+            if (!file) {
+                alert("Válassz fájlt!");
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                
+                currentUrls = [];
+                for (let line of lines) {
+                    let url = line.trim();
+                    if (url) {
+                        // Csak domain
+                        url = url.replace(/^https?:\/\//i, '');
+                        url = url.replace(/^www\./i, '');
+                        url = url.split(',')[0].trim();
+                        url = url.split('/')[0];
+                        
+                        if (url && url.includes('.')) {
+                            currentUrls.push('https://' + url);
+                        }
+                    }
+                }
+                
+                updateUrlList();
+                alert(currentUrls.length + " oldal betöltve!");
+            };
+            reader.readAsText(file);
+        }
+        
+        function addUrl() {
+            let url = document.getElementById('manualUrl').value.trim();
+            if (!url) return;
+            
+            // Tisztítás
+            url = url.replace(/^https?:\/\//i, '');
+            url = url.replace(/^www\./i, '');
+            url = url.split('/')[0];
+            
+            if (url && url.includes('.')) {
+                currentUrls.push('https://' + url);
+                updateUrlList();
+                document.getElementById('manualUrl').value = '';
+            }
+        }
+        
+        function updateUrlList() {
+            const container = document.getElementById('urlsContainer');
+            container.innerHTML = '';
+            
+            currentUrls.forEach((url, index) => {
+                const div = document.createElement('div');
+                div.style.padding = '10px';
+                div.style.margin = '5px';
+                div.style.background = '#444';
+                div.style.borderRadius = '5px';
+                div.style.display = 'flex';
+                div.style.justifyContent = 'space-between';
+                div.style.alignItems = 'center';
+                
+                div.innerHTML = `
+                    <span>${url.replace('https://', '')}</span>
+                    <div>
+                        <button onclick="loadInIframe('${url}')" 
+                                style="background: green; padding: 5px 10px; margin: 0 5px;">
+                            ▶️ Betöltés
+                        </button>
+                        <button onclick="removeUrl(${index})" 
+                                style="background: darkred; padding: 5px 10px;">
+                            ❌ Törlés
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(div);
+            });
+        }
+        
+        function loadInIframe(url) {
+            // CSAK IFRAME-BE - NEM ÚJ LAP
+            const iframe = document.getElementById('mainFrame');
+            iframe.src = url;
+            console.log("IFRAME betöltve: " + url);
+            
+            // Notifikáció
+            const notif = document.createElement('div');
+            notif.style.position = 'fixed';
+            notif.style.top = '10px';
+            notif.style.right = '10px';
+            notif.style.background = 'green';
+            notif.style.color = 'white';
+            notif.style.padding = '10px';
+            notif.style.borderRadius = '5px';
+            notif.style.zIndex = '9999';
+            notif.textContent = `✅ ${url.replace('https://', '')} betöltve IFRAME-BEN`;
+            
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 3000);
+        }
+        
+        function removeUrl(index) {
+            currentUrls.splice(index, 1);
+            updateUrlList();
+        }
+        
+        // Demo URL-ek
+        currentUrls = [
+            'https://wikipedia.org',
+            'https://example.com',
+            'https://github.com'
+        ];
+        updateUrlList();
+    </script>
+</body>
+</html>
