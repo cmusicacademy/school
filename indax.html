@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>CSV Loader - Iframe Benntartó</title>
+    <style>
+        body {
+            background: #1a1a2e;
+            color: white;
+            font-family: Arial;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .upload-box {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px dashed #0f3460;
+        }
+        
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #0f3460;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        
+        button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background: #ff6b8b;
+        }
+        
+        .websites-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .website-frame-box {
+            background: #0f3460;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .website-header {
+            background: #16213e;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e94560;
+        }
+        
+        .website-frame {
+            flex: 1;
+            width: 100%;
+            border: none;
+            background: white;
+        }
+        
+        .website-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 20px;
+        }
+        
+        .frame-wrapper {
+            position: relative;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 CSV Betöltő - IFRAME BENN MARAD</h1>
+        
+        <div class="upload-box">
+            <h2>📁 CSV Fájl Betöltése</h2>
+            <p>Add meg a weboldalakat (egy sorban egy domain):</p>
+            <input type="file" id="csvFile" accept=".csv">
+            <div>
+                <button onclick="loadCSV()">📤 CSV Betöltés</button>
+                <button onclick="addDemoSites()">🎮 Demo Oldalak</button>
+            </div>
+        </div>
+        
+        <div class="websites-container" id="websitesContainer">
+            <!-- Itt jönnek az iframe-ek -->
+        </div>
+    </div>
+
+    <script>
+        // SIMPLE CSV LOADER - IFRAME BENNTARTÓ
+        function loadCSV() {
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert("❌ Válassz ki egy CSV fájlt!");
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const websites = parseSimpleCSV(text);
+                
+                if (websites.length === 0) {
+                    alert("❌ Nem található weboldal a CSV-ben!");
+                    return;
+                }
+                
+                createWebsiteFrames(websites);
+                alert(`✅ ${websites.length} weboldal betöltve IFRAME-BEN!`);
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        function parseSimpleCSV(csvText) {
+            const websites = [];
+            const lines = csvText.split('\n');
+            
+            for (let line of lines) {
+                let cleanLine = line.trim();
+                if (!cleanLine) continue;
+                
+                // Csak az URL-t vegyük (ha van vessző, az első részt)
+                let url = cleanLine.split(',')[0].trim();
+                
+                // Tisztítsuk az URL-t
+                url = url.replace(/^https?:\/\//i, '');
+                url = url.replace(/^www\./i, '');
+                url = url.split('/')[0]; // Csak domain
+                
+                if (url && url.includes('.') && url.length > 3) {
+                    websites.push({
+                        domain: url,
+                        fullUrl: 'https://' + url
+                    });
+                }
+            }
+            
+            return websites;
+        }
+        
+        function createWebsiteFrames(websites) {
+            const container = document.getElementById('websitesContainer');
+            container.innerHTML = '';
+            
+            websites.forEach((site, index) => {
+                const frameBox = document.createElement('div');
+                frameBox.className = 'website-frame-box';
+                frameBox.innerHTML = `
+                    <div class="website-header">
+                        <h3>${site.domain}</h3>
+                        <button onclick="reloadFrame(${index})">🔄 Újratöltés</button>
+                    </div>
+                    <div class="frame-wrapper">
+                        <div class="website-overlay" id="overlay-${index}">
+                            <h2>${site.domain}</h2>
+                            <p>Kattints a gombra a betöltéshez:</p>
+                            <button onclick="loadFrame(${index}, '${site.fullUrl}')" 
+                                    style="background: #4CAF50; padding: 15px 30px; font-size: 16px;">
+                                ▶️ Weboldal Betöltése
+                            </button>
+                            <p style="margin-top: 20px; font-size: 14px; opacity: 0.8;">
+                                Az oldal IFRAME-BEN fog megjelenni, nem új lapon!
+                            </p>
+                        </div>
+                        <iframe class="website-frame" 
+                                id="frame-${index}"
+                                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                                referrerpolicy="no-referrer">
+                        </iframe>
+                    </div>
+                `;
+                
+                container.appendChild(frameBox);
+            });
+        }
+        
+        function loadFrame(index, url) {
+            const iframe = document.getElementById(`frame-${index}`);
+            const overlay = document.getElementById(`overlay-${index}`);
+            
+            // Elrejtjük az overlay-t
+            overlay.style.display = 'none';
+            
+            // Betöltjük az iframe-be
+            iframe.src = url;
+            
+            console.log(`✅ IFRAME betöltve: ${url}`);
+        }
+        
+        function reloadFrame(index) {
+            const iframe = document.getElementById(`frame-${index}`);
+            const overlay = document.getElementById(`overlay-${index}`);
+            
+            // Megjelenítjük az overlay-t újra
+            overlay.style.display = 'flex';
+            
+            // Ürítjük az iframe-et
+            iframe.src = '';
+        }
+        
+        function addDemoSites() {
+            const demoSites = [
+                { domain: "wikipedia.org", fullUrl: "https://wikipedia.org" },
+                { domain: "example.com", fullUrl: "https://example.com" },
+                { domain: "github.com", fullUrl: "https://github.com" },
+                { domain: "youtube.com", fullUrl: "https://youtube.com" }
+            ];
+            
+            createWebsiteFrames(demoSites);
+            alert("🎮 Demo oldalak betöltve!");
+        }
+        
+        // Betöltéskor demo oldalak
+        window.onload = addDemoSites;
+    </script>
+</body>
+</html>
